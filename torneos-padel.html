@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Torneos de Pádel – App Local</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --acc:#22d3ee; --acc2:#34d399; --warn:#fbbf24; --danger:#f87171; --ok:#4ade80;
+    --br:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,"Helvetica Neue",Arial;
+       background:linear-gradient(180deg,#0b1024,#0f172a 40%,#0b1024);color:var(--text)}
+  header{padding:20px 16px;border-bottom:1px solid #1f2937;position:sticky;top:0;background:rgba(15,23,42,.8);backdrop-filter: blur(8px);z-index:10}
+  h1{margin:0;font-size:20px;display:flex;gap:10px;align-items:center}
+  h1 span.badge{font-size:12px;color:#0f172a;background:var(--acc);padding:2px 8px;border-radius:999px}
+  main{padding:18px;display:grid;gap:18px;grid-template-columns: 1.2fr 2fr}
+  @media (max-width:1024px){main{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,#0b1224,#0a1326);border:1px solid #1f2937;border-radius:var(--br);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #1f2937;font-size:16px;color:#cbd5e1}
+  .card .content{padding:14px 16px}
+  label{font-size:13px;color:var(--muted)}
+  input,select,button,textarea{
+    width:100%;padding:10px 12px;border:1px solid #243041;background:#0b1020;color:var(--text);
+    border-radius:10px;font-size:14px;outline:none
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+  .row{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+  .row-3{display:grid;gap:10px;grid-template-columns:1fr 1fr 1fr}
+  .row-4{display:grid;gap:10px;grid-template-columns:repeat(4,1fr)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{cursor:pointer;border-radius:10px;border:1px solid #243041;background:#0b1828}
+  .btn.primary{background:linear-gradient(135deg,#0891b2,#22d3ee);color:#05121a;border:0;font-weight:600}
+  .btn.success{background:linear-gradient(135deg,#0ea5e9,#34d399);color:#041015;border:0;font-weight:600}
+  .btn.warn{background:#33270a;border-color:#614c10;color:#facc15}
+  .btn.danger{background:#2a0b0b;border-color:#4c1010;color:#fca5a5}
+  .small{font-size:12px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:10px;border-bottom:1px solid #1f2937;text-align:left}
+  th{color:#cbd5e1;font-weight:600;background:#0e1a2e;position:sticky;top:0;z-index:1}
+  tr:hover td{background:#0c1728}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:12px}
+  .pill.ok{background:#052413;color:#86efac;border:1px solid #14532d}
+  .pill.warn{background:#241a05;color:#fde68a;border:1px solid #854d0e}
+  .pill.info{background:#071a24;color:#a5f3fc;border:1px solid #155e75}
+  .muted{color:#9ca3af}
+  .grid{display:grid;gap:12px}
+  .divider{height:1px;background:#1f2937;margin:10px 0}
+  .setbox{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px;align-items:center}
+  .tag{padding:2px 6px;border:1px solid #1f2937;border-radius:6px;font-size:12px;color:#cbd5e1;background:#0b1828}
+  footer{padding:14px 16px;color:#94a3b8}
+</style>
+</head>
+<body>
+<header>
+  <h1>
+    Torneos de Pádel
+    <span class="badge">Offline</span>
+  </h1>
+</header>
+
+<main>
+  <!-- Columna izquierda: Gestión -->
+  <section class="grid">
+    <!-- Parejas -->
+    <div class="card" id="card-parejas">
+      <h2>1) Registrar Parejas</h2>
+      <div class="content grid">
+        <div class="row">
+          <div>
+            <label>Jugador 1</label>
+            <input id="p1" placeholder="Nombre y apellido" />
+          </div>
+          <div>
+            <label>Jugador 2</label>
+            <input id="p2" placeholder="Nombre y apellido" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Nombre de la pareja (opcional)</label>
+            <input id="teamName" placeholder="Ej: Los Smashers" />
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <button class="btn primary" id="addTeam">Agregar pareja</button>
+            <button class="btn" id="clearTeams" title="Borrar todas las parejas">Limpiar</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="small">Parejas registradas:</div>
+        <div id="teamsList" class="grid"></div>
+      </div>
+    </div>
+
+    <!-- Crear partido -->
+    <div class="card" id="card-partidos">
+      <h2>2) Crear Partido</h2>
+      <div class="content grid">
+        <div class="row">
+          <div>
+            <label>Pareja A</label>
+            <select id="matchA"></select>
+          </div>
+          <div>
+            <label>Pareja B</label>
+            <select id="matchB"></select>
+          </div>
+        </div>
+        <div class="row-3">
+          <div>
+            <label>N° de cancha</label>
+            <input id="court" type="number" min="1" placeholder="Ej: 3" />
+          </div>
+          <div>
+            <label>Sets máximos (mejor de)</label>
+            <select id="maxSets">
+              <option value="3" selected>3</option>
+              <option value="1">1</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn primary" id="createMatch">Agregar partido</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="small">Partidos creados (haz clic para cargar y anotar resultados):</div>
+        <div id="matchesList" class="grid"></div>
+      </div>
+    </div>
+
+    <!-- Configuración -->
+    <div class="card" id="card-config">
+      <h2>3) Configuración de Puntaje</h2>
+      <div class="content grid">
+        <div class="row-4">
+          <div>
+            <label>Puntos por victoria</label>
+            <input id="ptsWin" type="number" value="3" />
+          </div>
+          <div>
+            <label>Puntos por set ganado</label>
+            <input id="ptsSet" type="number" value="1" />
+          </div>
+          <div>
+            <label>Puntos por game ganado</label>
+            <input id="ptsGame" type="number" value="0" />
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn success" id="saveCfg">Guardar</button>
+          </div>
+        </div>
+        <div class="small">Puedes dejar “0” si no quieres bonificar sets o games.</div>
+        <div class="divider"></div>
+        <div class="actions">
+          <button class="btn" id="exportBtn">Exportar JSON</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" />
+          <button class="btn" id="importBtn">Importar JSON</button>
+          <button class="btn warn" id="resetAll">Resetear todo</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Columna derecha: Resultado / Anotación -->
+  <section class="grid">
+    <div class="card" id="card-anotacion">
+      <h2>4) Anotar Resultado del Partido</h2>
+      <div class="content grid">
+        <div class="row">
+          <div>
+            <label>Partido seleccionado</label>
+            <select id="activeMatch"></select>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <button class="btn" id="loadMatch">Cargar</button>
+            <button class="btn danger" id="deleteMatch">Eliminar</button>
+          </div>
+        </div>
+
+        <div id="matchInfo" class="grid" style="display:none">
+          <div class="row">
+            <div class="tag" id="mi-teams"></div>
+            <div class="tag" id="mi-court"></div>
+          </div>
+          <div id="setsContainer" class="grid"></div>
+          <div class="actions">
+            <button class="btn success" id="saveScore">Guardar resultado</button>
+            <span class="small" id="saveMsg"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="card-positions">
+      <h2>Tabla de Posiciones</h2>
+      <div class="content">
+        <table id="standings">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Pareja</th>
+              <th>PJ</th>
+              <th>PG</th>
+              <th>PP</th>
+              <th>Sets F</th>
+              <th>Sets C</th>
+              <th>Games F</th>
+              <th>Games C</th>
+              <th>Puntos</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="small muted" style="margin-top:8px">
+          Criterios de desempate: 1) Puntos, 2) Dif. de sets, 3) Dif. de games, 4) PG.
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Hecho con ❤️ para organizar torneos de pádel sin conexión. Guarda este archivo y úsalo cuando quieras.
+</footer>
+
+<script>
+(function(){
+  // ===== Estado =====
+  const state = {
+    teams: [], // {id, name, p1, p2}
+    matches: [], // {id, aId, bId, court, maxSets, sets:[{a,b}], finished:bool}
+    config: { ptsWin:3, ptsSet:1, ptsGame:0 }
+  };
+
+  const uid = () => Math.random().toString(36).slice(2,10);
+
+  // ===== Persistencia =====
+  const STORAGE_KEY = "padel_tournament_state_v1";
+  function saveAll(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    render(); // refrescar
+  }
+  function loadAll(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    try{
+      const parsed = JSON.parse(raw);
+      if(parsed.teams) state.teams = parsed.teams;
+      if(parsed.matches) state.matches = parsed.matches;
+      if(parsed.config) state.config = parsed.config;
+    }catch(e){ console.warn("No se pudo cargar almacenamiento:", e); }
+  }
+
+  // ===== DOM helpers =====
+  const $ = (sel)=>document.querySelector(sel);
+  const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
+
+  // Inputs Parejas
+  const ip1 = $("#p1"), ip2 = $("#p2"), iTeamName = $("#teamName"), btnAddTeam = $("#addTeam"), btnClearTeams = $("#clearTeams");
+  const teamsList = $("#teamsList");
+
+  // Crear partido
+  const sA = $("#matchA"), sB = $("#matchB"), iCourt = $("#court"), sMaxSets = $("#maxSets"), btnCreateMatch = $("#createMatch");
+  const matchesList = $("#matchesList");
+
+  // Configuración
+  const iPtsWin = $("#ptsWin"), iPtsSet = $("#ptsSet"), iPtsGame = $("#ptsGame"), btnSaveCfg = $("#saveCfg");
+  const btnExport = $("#exportBtn"), btnImport = $("#importBtn"), fileImport = $("#importFile"), btnReset = $("#resetAll");
+
+  // Anotar resultado
+  const activeMatchSel = $("#activeMatch"), btnLoadMatch = $("#loadMatch"), btnDeleteMatch = $("#deleteMatch");
+  const matchInfo = $("#matchInfo"), miTeams=$("#mi-teams"), miCourt=$("#mi-court"), setsContainer=$("#setsContainer");
+  const btnSaveScore = $("#saveScore"), saveMsg=$("#saveMsg");
+
+  // Tabla posiciones
+  const standingsBody = $("#standings tbody");
+
+  // ===== Render =====
+  function renderTeamOptions(){
+    const opts = ['<option value="">-- Seleccionar --</option>']
+      .concat(state.teams.map(t=>`<option value="${t.id}">${teamDisplay(t)}</option>`));
+    sA.innerHTML = opts.join("");
+    sB.innerHTML = opts.join("");
+    activeMatchSel.innerHTML = ['<option value="">-- Seleccionar --</option>']
+      .concat(state.matches.map(m=>`<option value="${m.id}">${matchLabel(m)}</option>`)).join("");
+  }
+
+  function renderTeamsList(){
+    teamsList.innerHTML = state.teams.length
+      ? state.teams.map(t=>`
+        <div class="row" data-id="${t.id}">
+          <div>
+            <div class="pill info">${teamDisplay(t)}</div>
+            <div class="small muted">${t.p1} + ${t.p2}</div>
+          </div>
+          <div class="actions" style="justify-content:flex-end">
+            <button class="btn danger" data-action="delTeam">Eliminar</button>
+          </div>
+        </div>
+      `).join("")
+      : '<div class="small muted">No hay parejas aún.</div>';
+
+    teamsList.querySelectorAll('button[data-action="delTeam"]').forEach(btn=>{
+      btn.onclick = () => {
+        const id = btn.closest('[data-id]').getAttribute('data-id');
+        // impedir borrar si está en partidos
+        const used = state.matches.some(m=>m.aId===id||m.bId===id);
+        if(used){ alert("No puedes eliminar una pareja que ya está asignada a partidos."); return; }
+        state.teams = state.teams.filter(t=>t.id!==id);
+        saveAll();
+      }
+    });
+  }
+
+  function renderMatchesList(){
+    matchesList.innerHTML = state.matches.length
+      ? state.matches.map(m=>{
+        const st = m.finished ? '<span class="pill ok">Finalizado</span>' : '<span class="pill warn">Pendiente</span>';
+        return `
+          <div class="row" data-id="${m.id}">
+            <div>
+              <div>${matchTitle(m)}</div>
+              <div class="small muted">Cancha ${m.court} · Mejor de ${m.maxSets} sets</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end">
+              ${st}
+              <button class="btn" data-action="open">Abrir</button>
+            </div>
+          </div>
+        `;
+      }).join("")
+      : '<div class="small muted">Crea partidos para comenzar a anotar resultados.</div>';
+
+    matchesList.querySelectorAll('button[data-action="open"]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.closest('[data-id]').getAttribute('data-id');
+        activeMatchSel.value = id;
+        loadActiveMatch();
+        window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+      };
+    });
+  }
+
+  function renderStandings(){
+    const stats = calcStandings();
+    stats.sort((a,b)=>{
+      // Orden: puntos desc, diff sets desc, diff games desc, PG desc, nombre
+      const dP = b.points - a.points; if(dP) return dP;
+      const dS = (b.setsFor-b.setsAgainst) - (a.setsFor-a.setsAgainst); if(dS) return dS;
+      const dG = (b.gamesFor-b.gamesAgainst) - (a.gamesFor-a.gamesAgainst); if(dG) return dG;
+      const dW = b.wins - a.wins; if(dW) return dW;
+      return teamDisplay(a.team).localeCompare(teamDisplay(b.team));
+    });
+    standingsBody.innerHTML = stats.map((s,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${teamDisplay(s.team)}</td>
+        <td>${s.played}</td>
+        <td>${s.wins}</td>
+        <td>${s.losses}</td>
+        <td>${s.setsFor}</td>
+        <td>${s.setsAgainst}</td>
+        <td>${s.gamesFor}</td>
+        <td>${s.gamesAgainst}</td>
+        <td><strong>${s.points}</strong></td>
+      </tr>
+    `).join("");
+  }
+
+  function render(){
+    renderTeamOptions();
+    renderTeamsList();
+    renderMatchesList();
+    renderStandings();
+  }
+
+  // ===== Util =====
+  function teamDisplay(t){
+    return t.name && t.name.trim() ? t.name.trim() : `${t.p1} / ${t.p2}`;
+  }
+  function getTeam(id){ return state.teams.find(t=>t.id===id); }
+
+  function matchLabel(m){
+    const A = getTeam(m.aId), B = getTeam(m.bId);
+    if(!A || !B) return "(parejas eliminadas)";
+    return `${teamDisplay(A)} vs ${teamDisplay(B)} · Cancha ${m.court}`;
+  }
+  function matchTitle(m){
+    const A = getTeam(m.aId), B = getTeam(m.bId);
+    return `<strong>${teamDisplay(A)}</strong> vs <strong>${teamDisplay(B)}</strong>`;
+  }
+
+  function ensureSetsArray(m){
+    // crea sets vacíos según maxSets si aún no existen
+    if(!Array.isArray(m.sets)) m.sets = [];
+    const need = m.maxSets - m.sets.length;
+    for(let i=0;i<need;i++) m.sets.push({a:"", b:""});
+    // si sobran (p.e. bajó de 5 a 3), recorta
+    if(m.sets.length > m.maxSets) m.sets = m.sets.slice(0, m.maxSets);
+  }
+
+  function calcStandings(){
+    const base = new Map(); // id -> stats
+    state.teams.forEach(t=>base.set(t.id,{
+      team:t, played:0, wins:0, losses:0,
+      setsFor:0, setsAgainst:0, gamesFor:0, gamesAgainst:0, points:0
+    }));
+
+    for(const m of state.matches){
+      if(!m.finished) continue;
+      const res = tallyMatch(m);
+      const A = base.get(m.aId), B = base.get(m.bId);
+      if(!A||!B) continue;
+      A.played++; B.played++;
+      A.wins += res.winner==='A'?1:0; A.losses += res.winner==='B'?1:0;
+      B.wins += res.winner==='B'?1:0; B.losses += res.winner==='A'?1:0;
+
+      A.setsFor += res.setsA; A.setsAgainst += res.setsB;
+      B.setsFor += res.setsB; B.setsAgainst += res.setsA;
+
+      A.gamesFor += res.gamesA; A.gamesAgainst += res.gamesB;
+      B.gamesFor += res.gamesB; B.gamesAgainst += res.gamesA;
+
+      // Puntos
+      if(res.winner==='A') A.points += state.config.ptsWin; else B.points += state.config.ptsWin;
+      A.points += res.setsA * Number(state.config.ptsSet||0);
+      B.points += res.setsB * Number(state.config.ptsSet||0);
+      A.points += res.gamesA * Number(state.config.ptsGame||0);
+      B.points += res.gamesB * Number(state.config.ptsGame||0);
+    }
+
+    return Array.from(base.values());
+  }
+
+  function tallyMatch(m){
+    // Cuenta sets y games (ignora sets vacíos)
+    let setsA=0, setsB=0, gamesA=0, gamesB=0;
+    for(const s of m.sets||[]){
+      const a = parseInt(s.a,10), b=parseInt(s.b,10);
+      if(Number.isNaN(a) || Number.isNaN(b)) continue;
+      gamesA += a; gamesB += b;
+      if(a===b) continue; // no cuenta empate de set
+      if(a>b) setsA++; else setsB++;
+    }
+    const winner = setsA===setsB ? (gamesA>gamesB?'A':'B') : (setsA>setsB?'A':'B'); // rompe empate por games totales
+    return {setsA, setsB, gamesA, gamesB, winner};
+  }
+
+  function rebuildSetInputs(m){
+    setsContainer.innerHTML = "";
+    ensureSetsArray(m);
+    const A = getTeam(m.aId), B = getTeam(m.bId);
+    m.sets.forEach((s,idx)=>{
+      const el = document.createElement('div');
+      el.className = "setbox";
+      el.innerHTML = `
+        <div><strong>Set ${idx+1}</strong> <span class="small muted">(juegos)</span></div>
+        <input type="number" min="0" placeholder="${teamDisplay(A)}" value="${s.a}" data-set="${idx}" data-side="a"/>
+        <input type="number" min="0" placeholder="${teamDisplay(B)}" value="${s.b}" data-set="${idx}" data-side="b"/>
+      `;
+      setsContainer.appendChild(el);
+    });
+
+    // cambios
+    setsContainer.querySelectorAll('input[type="number"]').forEach(inp=>{
+      inp.oninput = ()=>{
+        const idx = Number(inp.getAttribute('data-set'));
+        const side = inp.getAttribute('data-side');
+        m.sets[idx][side] = inp.value;
+      };
+    });
+  }
+
+  // ===== Eventos =====
+  btnAddTeam.onclick = ()=>{
+    const a = ip1.value.trim(), b = ip2.value.trim(), nm = iTeamName.value.trim();
+    if(!a || !b){ alert("Ingresa ambos jugadores."); return; }
+    const t = { id:uid(), name:nm, p1:a, p2:b };
+    state.teams.push(t);
+    ip1.value=""; ip2.value=""; iTeamName.value="";
+    saveAll();
+  };
+
+  btnClearTeams.onclick = ()=>{
+    if(!state.teams.length) return;
+    if(!confirm("¿Eliminar TODAS las parejas? (Solo si no hay partidos creados)")) return;
+    const used = state.matches.some(m=>state.teams.some(t=>t.id===m.aId||t.id===m.bId));
+    if(used){ alert("No puedes limpiar: hay partidos con esas parejas."); return; }
+    state.teams = [];
+    saveAll();
+  };
+
+  btnCreateMatch.onclick = ()=>{
+    const aId = sA.value, bId = sB.value, court = iCourt.value.trim(), maxSets = Number(sMaxSets.value||3);
+    if(!aId || !bId || aId===bId){ alert("Elige dos parejas diferentes."); return; }
+    if(!court){ alert("Indica el número de cancha."); return; }
+    const m = { id:uid(), aId, bId, court, maxSets, sets:[], finished:false };
+    ensureSetsArray(m);
+    state.matches.push(m);
+    iCourt.value="";
+    saveAll();
+  };
+
+  btnSaveCfg.onclick = ()=>{
+    const w = Number(iPtsWin.value||0), s = Number(iPtsSet.value||0), g = Number(iPtsGame.value||0);
+    state.config = { ptsWin:w, ptsSet:s, ptsGame:g };
+    saveAll();
+    alert("Configuración guardada.");
+  };
+
+  btnExport.onclick = ()=>{
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = "padel_torneo_backup.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  btnImport.onclick = ()=> fileImport.click();
+  fileImport.onchange = (e)=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        if(confirm("Esto reemplazará los datos actuales. ¿Continuar?")){
+          state.teams = data.teams||[];
+          state.matches = data.matches||[];
+          state.config = data.config||state.config;
+          saveAll();
+        }
+      }catch(err){ alert("Archivo inválido."); }
+    };
+    reader.readAsText(f);
+  };
+
+  btnReset.onclick = ()=>{
+    if(!confirm("¿Resetear todo? Se borrarán parejas, partidos y configuración.")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state.teams=[]; state.matches=[]; state.config={ptsWin:3,ptsSet:1,ptsGame:0};
+    render();
+  };
+
+  btnLoadMatch.onclick = loadActiveMatch;
+  function loadActiveMatch(){
+    const id = activeMatchSel.value;
+    if(!id){ matchInfo.style.display="none"; return; }
+    const m = state.matches.find(x=>x.id===id);
+    if(!m){ matchInfo.style.display="none"; return; }
+    const A = getTeam(m.aId), B = getTeam(m.bId);
+    miTeams.innerHTML = `${teamDisplay(A)} <span class="muted">vs</span> ${teamDisplay(B)}`;
+    miCourt.innerText = `Cancha ${m.court} · Mejor de ${m.maxSets}`;
+    matchInfo.style.display="grid";
+    rebuildSetInputs(m);
+  }
+
+  btnDeleteMatch.onclick = ()=>{
+    const id = activeMatchSel.value;
+    if(!id) return;
+    if(!confirm("¿Eliminar este partido?")) return;
+    state.matches = state.matches.filter(m=>m.id!==id);
+    saveAll();
+    matchInfo.style.display="none";
+  };
+
+  btnSaveScore.onclick = ()=>{
+    const id = activeMatchSel.value;
+    const m = state.matches.find(x=>x.id===id);
+    if(!m) return;
+    // Validación mínima: al menos 1 set con números
+    const anySet = (m.sets||[]).some(s=>s.a!=="" && s.b!=="");
+    if(!anySet){ alert("Ingresa al menos un set con juegos para ambas parejas."); return; }
+
+    // Determinar si ya hay ganador por mayoría de sets
+    const res = tallyMatch(m);
+    const needSetsToWin = Math.floor(m.maxSets/2)+1;
+    if(res.setsA < needSetsToWin && res.setsB < needSetsToWin){
+      if(!confirm("Aún no hay mayoría de sets. ¿Guardar de todas formas como 'pendiente'?")){
+        return;
+      }
+      m.finished = false;
+    } else {
+      m.finished = true;
+    }
+    saveAll();
+    saveMsg.textContent = "Resultado guardado.";
+    setTimeout(()=>saveMsg.textContent="", 1500);
+  };
+
+  // ===== Inicializar =====
+  function initInputsFromState(){
+    iPtsWin.value = state.config.ptsWin;
+    iPtsSet.value = state.config.ptsSet;
+    iPtsGame.value = state.config.ptsGame;
+  }
+
+  loadAll();
+  initInputsFromState();
+  render();
+})();
+</script>
+</body>
+</html>
